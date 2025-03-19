@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Invoices</title>
+</head>
+<body>
+    <h2>Upload Invoice PDFs</h2>
+    <form action="http://127.0.0.1:5000/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" multiple accept=".pdf">
+        <button type="submit">Upload & Extract</button>
+    </form>
+</body>
+</html>
