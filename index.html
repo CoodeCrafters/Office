@@ -22,9 +22,11 @@
             max-width: 400px;
             margin: auto;
         }
-        input[type="file"] {
+        input[type="file"], select {
             display: block;
-            margin: 15px auto;
+            margin: 10px auto;
+            padding: 5px;
+            font-size: 14px;
         }
         button {
             background-color: #bbb;
@@ -77,12 +79,36 @@
                 fileList.appendChild(table);
             }
         }
+
+        function updateFormAction() {
+            let serverSelect = document.getElementById("serverSelect").value;
+            let form = document.getElementById("uploadForm");
+
+            if (serverSelect) {
+                form.action = serverSelect + "/upload";
+            }
+        }
+
+        function validateForm(event) {
+            let serverSelect = document.getElementById("serverSelect").value;
+            if (!serverSelect) {
+                alert("Please select a server before uploading.");
+                event.preventDefault(); // Prevent form submission
+            }
+        }
     </script>
 </head>
 <body>
     <h2>Upload Invoice PDFs</h2>
     <div class="upload-container">
-        <form action="https://office-pewp.onrender.com/upload" method="post" enctype="multipart/form-data">
+        <form id="uploadForm" method="post" enctype="multipart/form-data" onsubmit="validateForm(event)">
+            <label for="serverSelect">Select Server:</label>
+            <select id="serverSelect" onchange="updateFormAction()">
+                <option value="">-- Choose Server --</option>
+                <option value="https://office-pewp.onrender.com">Server 1 (PEWP)</option>
+                <option value="https://office-1-11e2.onrender.com">Server 2 (11E2)</option>
+            </select>
+
             <input type="file" id="fileInput" name="file" multiple accept=".pdf" onchange="updateFileList()">
             <button type="submit">Upload & Extract</button>
         </form>
