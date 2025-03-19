@@ -3,13 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Invoices</title>
+    <title>Upload Invoice PDFs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #333;
+        }
+        .upload-container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-width: 400px;
+            margin: auto;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 15px auto;
+        }
+        button {
+            background-color: #bbb;
+            color: black;
+            border: 1px solid #999;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #aaa;
+        }
+        .file-list {
+            margin-top: 15px;
+            text-align: center;
+            max-width: 400px;
+            margin: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f0f0f0;
+        }
+    </style>
+    <script>
+        function updateFileList() {
+            let input = document.getElementById("fileInput");
+            let fileList = document.getElementById("fileList");
+            fileList.innerHTML = ""; // Clear previous list
+
+            if (input.files.length > 0) {
+                let table = document.createElement("table");
+                table.innerHTML = "<tr><th>File Name</th><th>Size (KB)</th></tr>";
+
+                for (let i = 0; i < input.files.length; i++) {
+                    let row = table.insertRow();
+                    row.insertCell(0).textContent = input.files[i].name;
+                    row.insertCell(1).textContent = (input.files[i].size / 1024).toFixed(2);
+                }
+
+                fileList.appendChild(table);
+            }
+        }
+    </script>
 </head>
 <body>
     <h2>Upload Invoice PDFs</h2>
-    <form action="http://127.0.0.1:5000/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" multiple accept=".pdf">
-        <button type="submit">Upload & Extract</button>
-    </form>
+    <div class="upload-container">
+        <form action="http://127.0.0.1:5000/upload" method="post" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="file" multiple accept=".pdf" onchange="updateFileList()">
+            <button type="submit">Upload & Extract</button>
+        </form>
+    </div>
+
+    <div class="file-list">
+        <h3>Uploaded Files:</h3>
+        <div id="fileList"></div>
+    </div>
 </body>
 </html>
