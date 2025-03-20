@@ -21,7 +21,11 @@ def extract_invoice_data(pdf_path):
         # Extract Invoice or Credit Note Date
         invoice_date = re.search(r"INVOICE DATE\s*([\dA-Za-z-]+)", text) or re.search(r"DATE\s*([\dA-Za-z-]+)", text)
 
+        # Extract Subtotal
         subtotal = re.search(r"SUBTOTAL\s*([\d.,]+)", text)
+
+        # Extract Total AED
+        total_aed = re.search(r"TOTAL AED\s*([\d.,]+)", text)
 
         # Initialize Invoice Data
         invoice_details = {
@@ -29,7 +33,8 @@ def extract_invoice_data(pdf_path):
             "Invoice Date": invoice_date.group(1) if invoice_date else "N/A",
             "Non Taxable Amount": 0,
             "Taxable Amount": 0,
-            "VAT Value": 0
+            "VAT Value": 0,
+            "Total AED": float(total_aed.group(1).replace(",", "")) if total_aed else 0
         }
 
         # Extract charge description details
@@ -92,8 +97,10 @@ def upload_file():
         print("========================\n")
 
     return jsonify(results)
+
 @app.route("/health", methods=["GET"])
 def health_check():
     return jsonify({"status": "UP"}), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
