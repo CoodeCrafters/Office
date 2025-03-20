@@ -15,9 +15,12 @@ def extract_invoice_data(pdf_path):
         with pdfplumber.open(pdf_path) as pdf:
             text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
 
-        # Extract main invoice details
-        invoice_no = re.search(r"INVOICE NUMBER\s*([\w-]+)", text)
-        invoice_date = re.search(r"INVOICE DATE\s*([\dA-Za-z-]+)", text)
+        # Extract Invoice or Credit Note Number
+        invoice_no = re.search(r"INVOICE NUMBER\s*([\w-]+)", text) or re.search(r"CREDIT NOTE NUMBER\s*([\w-]+)", text)
+        
+        # Extract Invoice or Credit Note Date
+        invoice_date = re.search(r"INVOICE DATE\s*([\dA-Za-z-]+)", text) or re.search(r"DATE\s*([\dA-Za-z-]+)", text)
+
         subtotal = re.search(r"SUBTOTAL\s*([\d.,]+)", text)
 
         # Initialize Invoice Data
@@ -89,6 +92,8 @@ def upload_file():
         print("========================\n")
 
     return jsonify(results)
-
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "UP"}), 200
 if __name__ == "__main__":
     app.run(debug=True)
