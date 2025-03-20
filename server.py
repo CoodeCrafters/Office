@@ -47,6 +47,7 @@ def extract_invoice_data(pdf_path):
         invoice_date = next((re.search(r"INVOICE DATE\s*([\dA-Za-z-]+)", line).group(1) for line in lines if "INVOICE DATE" in line), "N/A")
         vat_value = next((float(re.search(r"VAT\s*([\d.,]+)", line).group(1).replace(",", "")) for line in lines if "VAT" in line and re.search(r"VAT\s*([\d.,]+)", line)), 0)
         subtotal = next((float(re.search(r"SUBTOTAL\s*([\d.,]+)", line).group(1).replace(",", "")) for line in lines if "SUBTOTAL" in line), 0)
+        total_aed = next((float(re.search(r"TOTAL AED\s*([\d.,]+)", line).group(1).replace(",", "")) for line in lines if "TOTAL AED" in line), 0)
 
         # Initialize values
         non_taxable = 0
@@ -92,7 +93,8 @@ def extract_invoice_data(pdf_path):
             "Invoice Date": invoice_date,
             "VAT Value": vat_value,
             "Non Taxable Amount": non_taxable,
-            "Taxable Amount": taxable
+            "Taxable Amount": taxable,
+            "Total AED": total_aed
         }
 
         return invoice_details
