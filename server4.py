@@ -11,7 +11,7 @@ VALID_NON_TAXABLE_TERMS = {"Zero Rated", "Not Taxable", "Not Applicable"}
 skipped_files = []  # Stores skipped filenames
 
 
-def extract_text_with_line_numbers2(pdf_path):
+def extract_text_with_line_numbers(pdf_path):
     """ Extracts text from PDF while numbering lines."""
     extracted_lines = []
     try:
@@ -30,10 +30,10 @@ def extract_text_with_line_numbers2(pdf_path):
         return None
 
 
-def extract_invoice_data2(pdf_path):
+def extract_invoice_data(pdf_path):
     """ Extracts invoice details and ensures consignee is correct."""
     try:
-        lines = extract_text_with_line_numbers2(pdf_path)
+        lines = extract_text_with_line_numbers(pdf_path)
         print("\n===== Extracted Text =====")
         print("\n".join(lines))  # This will print extracted text
         print("========================\n")
@@ -116,7 +116,7 @@ def extract_invoice_data2(pdf_path):
         return None
 
 
-@app.route("/upload2", methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload_file():
     global skipped_files
     skipped_files = []
@@ -128,7 +128,7 @@ def upload_file():
     for file in request.files.getlist("file"):
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(file_path)
-        extracted_data = extract_invoice_data2(file_path)
+        extracted_data = extract_invoice_data(file_path)
         if extracted_data:
             results.append(extracted_data)
 
