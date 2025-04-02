@@ -11,7 +11,7 @@ VALID_VAT_TERMS = {"Zero Rated", "Not Taxable", "Not Applicable"}
 skipped_files = []  # List to store skipped file names
 CONSIGNEE_NAME = "D H TRADING GROUP SPC CO"  # Required consignee name
 
-def extract_invoice_data1(pdf_path):
+def extract_invoice_data(pdf_path):
     try:
         with pdfplumber.open(pdf_path) as pdf:
             text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
@@ -77,7 +77,7 @@ def extract_invoice_data1(pdf_path):
         print(f"Error processing {os.path.basename(pdf_path)}: {str(e)}")  # Log error in console
         return None  # Skip this file
 
-@app.route("/upload1", methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload_file():
     global skipped_files  # Reset the skipped files list for each request
     skipped_files = []
@@ -91,7 +91,7 @@ def upload_file():
     for file in uploaded_files:
         file_path = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(file_path)
-        extracted_data = extract_invoice_data1(file_path)
+        extracted_data = extract_invoice_data(file_path)
 
         if extracted_data:  # Only add if it's not skipped
             results.append(extracted_data)
