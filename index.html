@@ -83,9 +83,12 @@
         function updateFormAction() {
             let serverSelect = document.getElementById("serverSelect").value;
             let form = document.getElementById("uploadForm");
+            let routeSelect = document.getElementById("routeSelect");
 
-            if (serverSelect) {
-                form.action = serverSelect + "/upload";
+            if (serverSelect === "https://office-pewp.onrender.com") {
+                form.action = serverSelect + "/" + routeSelect.value;  // For Server 3 and 4 (with different routes)
+            } else {
+                form.action = serverSelect + "/upload";  // For Server 1 and Server 2 (same route)
             }
         }
 
@@ -107,7 +110,19 @@
                 <option value="">-- Choose Server --</option>
                 <option value="https://office-pewp.onrender.com">Server 1 (PEWP)</option>
                 <option value="https://office-1-11e2.onrender.com">Server 2 (11E2)</option>
+                <option value="https://office-pewp.onrender.com">Server 3 (WESK)</option>
+                <option value="https://office-pewp.onrender.com">Server 4 (17F2)</option>
             </select>
+
+            <!-- Dropdown for selecting the specific route for Server 3 and 4 -->
+            <div id="routeSelectDiv" style="display:none;">
+                <label for="routeSelect">Select Upload Route:</label>
+                <select id="routeSelect" onchange="updateFormAction()">
+                    <option value="upload">Route 1 & 2</option>
+                    <option value="upload1">Route 3</option>
+                    <option value="upload2">Route 4</option>
+                </select>
+            </div>
 
             <input type="file" id="fileInput" name="file" multiple accept=".pdf" onchange="updateFileList()">
             <button type="submit">Upload & Extract</button>
@@ -118,5 +133,20 @@
         <h3>Uploaded Files:</h3>
         <div id="fileList"></div>
     </div>
+
+    <script>
+        // Show or hide the route selection dropdown based on server selection
+        document.getElementById("serverSelect").addEventListener("change", function() {
+            let serverSelect = document.getElementById("serverSelect").value;
+            let routeSelectDiv = document.getElementById("routeSelectDiv");
+
+            // Show route selection for Server 3 and 4 only
+            if (serverSelect === "https://office-pewp.onrender.com") {
+                routeSelectDiv.style.display = "block";
+            } else {
+                routeSelectDiv.style.display = "none";
+            }
+        });
+    </script>
 </body>
 </html>
