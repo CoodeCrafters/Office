@@ -9,28 +9,44 @@
         textarea { width: 100%; height: 150px; }
         .output-container { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .entry { display: flex; flex-direction: column; margin-bottom: 10px; }
-        input { width: 100%; padding: 5px; margin-top: 5px; }
+        input, select { width: 100%; padding: 5px; margin-top: 5px; }
     </style>
 </head>
 <body>
     <h2>JSON Invoice Parser</h2>
+    
+    <label for="includeConsigneeShipper">Include Consignee & Shipper:</label>
+    <select id="includeConsigneeShipper">
+        <option value="yes">Yes</option>
+        <option value="no" selected>No</option>
+    </select><br><br>
+
     <textarea id="jsonInput" placeholder="Enter JSON here..."></textarea>
     <button onclick="parseJSON()">Parse JSON</button>
+    
     <div id="output"></div>
 
     <script>
         function parseJSON() {
             const input = document.getElementById("jsonInput").value;
+            const includeConsigneeShipper = document.getElementById("includeConsigneeShipper").value === "yes";
+            
             try {
                 const data = JSON.parse(input);
                 let invoiceDates = [], invoiceNos = [], nonTaxableAmounts = [], taxableAmounts = [], vatValues = [];
+                let shippers = [], consignees = [];
                 
                 data.forEach(invoice => {
-                    invoiceDates.push(invoice["Invoice Date"]);
-                    invoiceNos.push(invoice["Invoice No"]);
+                    invoiceDates.push(invoice["Document Date"]);
+                    invoiceNos.push(invoice["Document No"]);
                     nonTaxableAmounts.push(invoice["Non Taxable Amount"]);
                     taxableAmounts.push(invoice["Taxable Amount"]);
                     vatValues.push(invoice["VAT Value"]);
+
+                    if (includeConsigneeShipper) {
+                        shippers.push(invoice["Shipper"] || "N/A");
+                        consignees.push(invoice["Consignee"] || "N/A");
+                    }
                 });
                 
                 let outputHTML = '<div class="output-container">';
@@ -39,6 +55,12 @@
                 outputHTML += createEntry("Non Taxable Amount", nonTaxableAmounts);
                 outputHTML += createEntry("Taxable Amount", taxableAmounts);
                 outputHTML += createEntry("VAT Value", vatValues);
+
+                if (includeConsigneeShipper) {
+                    outputHTML += createEntry("Shipper", shippers);
+                    outputHTML += createEntry("Consignee", consignees);
+                }
+
                 outputHTML += '</div>';
                 
                 document.getElementById("output").innerHTML = outputHTML;
