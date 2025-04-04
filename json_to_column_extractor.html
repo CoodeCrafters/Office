@@ -37,8 +37,8 @@
                 let shippers = [], consignees = [];
                 
                 data.forEach(invoice => {
-                    invoiceDates.push(invoice["Document Date"]);
-                    invoiceNos.push(invoice["Document No"]);
+                    invoiceDates.push(invoice["Document Date"] || invoice["Invoice Date"] || "N/A");
+                    invoiceNos.push(invoice["Document No"] || invoice["Invoice No"] || "N/A");
                     nonTaxableAmounts.push(invoice["Non Taxable Amount"]);
                     taxableAmounts.push(invoice["Taxable Amount"]);
                     vatValues.push(invoice["VAT Value"]);
