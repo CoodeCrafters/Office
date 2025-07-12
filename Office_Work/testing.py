@@ -14,34 +14,13 @@ ALLOWED_ORIGIN = "https://coodecrafters.github.io"
 # Enable CORS using Flask-CORS (optional fallback)
 CORS(app)
 # Keepalive endpoint
-last_response_time = 0
-response_interval = 210  # seconds
-
-@app.route('/keepalive', methods=['GET', 'OPTIONS'])
+@app.route('/keepalive', methods=['GET'])
 def keepalive():
-    global last_response_time
-
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    current_time = time.time()
-    time_since_last = current_time - last_response_time
-
-    if time_since_last >= response_interval:
-        last_response_time = current_time
-        return jsonify({
-            "status": "active",
-            "message": "Server keepalive ping",
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "next_ping_in": f"{response_interval} seconds"
-        })
-    else:
-        return jsonify({
-            "status": "active",
-            "message": "Server is alive",
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "seconds_until_next_ping": int(response_interval - time_since_last)
-        })
+    return jsonify({
+        "status": "success",
+        "current_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "timestamp": datetime.now().timestamp()
+    })
 
 # Brand mapping
 BRAND_MAPPING = {
