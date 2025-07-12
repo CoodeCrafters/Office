@@ -11,9 +11,9 @@ app = Flask(__name__)
 
 ALLOWED_ORIGIN = "https://coodecrafters.github.io"
 
-# Enable CORS using Flask-CORS (optional fallback)
+# ✅ Enable CORS only for GitHub Pages
 CORS(app, resources={r"/*": {"origins": [ALLOWED_ORIGIN]}})
-# Keepalive endpoint
+
 @app.route('/keepalive', methods=['GET'])
 def keepalive():
     return jsonify({
@@ -21,9 +21,7 @@ def keepalive():
         "message": "Welcome to Incredible platform",
         "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
-    
 
-# Brand mapping
 BRAND_MAPPING = {
     "SFERA": "1000020410",
     "WOMEN SECRET": "1000027886",
@@ -47,7 +45,7 @@ def retrieve_data():
     try:
         if request.method == 'OPTIONS':
             return '', 204
-            
+
         if 'excelFile' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 
@@ -108,17 +106,25 @@ def retrieve_data():
         if not results:
             return jsonify({"error": "No matching data found in the file"}), 404
 
-        response = jsonify({
+        return jsonify({
             "status": "success",
             "date": file_date,
             "data": list(results.values())
         })
-        return response
-    
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
+# ✅ Ensure all responses carry CORS headers
+@app.after_request
+def apply_cors(response):
+    origin = request.headers.get('Origin')
+    if origin == ALLOWED_ORIGIN:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Max-Age'] = '86400'
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
