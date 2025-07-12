@@ -21,6 +21,7 @@ def keepalive():
         "message": "Welcome to Incredible platform",
         "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
+    
 
 # Brand mapping
 BRAND_MAPPING = {
