@@ -55,7 +55,7 @@
             height: 100%;
             background: linear-gradient(to bottom, #d4a76a 0%, #b58a4a 100%);
             clip-path: polygon(0% 0%, 100% 0%, 50% 50%, 100% 100%, 0% 100%);
-            animation: flow 210s linear infinite;
+            animation: flow 180s linear infinite;
         }
         
         .stand {
@@ -100,72 +100,84 @@
         .highlight {
             color: #d4a76a;
             font-weight: bold;
-            
+        }
+        
         .countdown {
-            font-size: 1.2em;
-            color: #d4a76a;
-            font-weight: bold;
+            display: inline-block;
+            width: 60px;
+            text-align: right;
         }
     </style>
 </head>
 <body>
-    <!-- [Keep all your existing HTML structure] -->
+    <h2>Server Keepalive Monitor</h2>
+    
+    <div class="sand-timer">
+        <div class="glass">
+            <div class="sand"></div>
+        </div>
+        <div class="stand"></div>
+    </div>
+    
+    <div id="status">
+        <div class="status-item">Status: <span class="highlight" id="statusText">Connecting...</span></div>
+        <div class="status-item">Message: <span class="highlight" id="messageText">-</span></div>
+        <div class="status-item">Last Response: <span class="highlight" id="timestampText">-</span></div>
+        <div class="status-item">Next check in: <span class="highlight"><span class="countdown" id="countdown">180</span> seconds</span></div>
+    </div>
     
     <script>
-        const statusDiv = document.getElementById('status');
-        const statusElements = statusDiv.querySelectorAll('.highlight');
+        const statusText = document.getElementById('statusText');
+        const messageText = document.getElementById('messageText');
+        const timestampText = document.getElementById('timestampText');
+        const countdown = document.getElementById('countdown');
         const sand = document.querySelector('.sand');
-        let countdownInterval;
-        let secondsRemaining = 180; // 3 minutes in seconds
-
-        const updateCountdown = () => {
-            const mins = Math.floor(secondsRemaining / 60);
-            const secs = secondsRemaining % 60;
-            statusElements[3].textContent = `${mins}m ${secs}s`;
-            secondsRemaining--;
-            
-            if (secondsRemaining < 0) {
-                secondsRemaining = 180;
-            }
-        };
-
-        const resetAnimation = () => {
+        
+        // Set sand timer animation to 3 minutes (180s)
+        sand.style.animationDuration = '180s';
+        
+        let resetAnimation = () => {
             sand.style.animation = 'none';
             sand.offsetHeight; // Trigger reflow
             sand.style.animation = 'flow 180s linear infinite';
         };
-
+        
+        // Countdown timer
+        let countdownValue = 180;
+        const updateCountdown = () => {
+            countdownValue--;
+            if (countdownValue <= 0) countdownValue = 180;
+            countdown.textContent = countdownValue;
+        };
+        
+        // Start countdown timer (updates every second)
+        setInterval(updateCountdown, 1000);
+        
         const pingServer = () => {
-            fetch('https://office-6.onrender.com/keepalive?t=' + Date.now())
+            fetch('https://office-6.onrender.com/keepalive')
                 .then(response => {
                     if (!response.ok) throw new Error('Server error');
                     return response.json();
                 })
                 .then(data => {
-                    statusElements[0].textContent = data.status;
-                    statusElements[1].textContent = data.message;
-                    statusElements[2].textContent = data.timestamp;
-                    
-                    // Reset countdown when we get a fresh ping
-                    if (data.message.includes("keepalive ping")) {
-                        secondsRemaining = 180;
-                    }
-                    
+                    statusText.textContent = data.status;
+                    messageText.textContent = data.message;
+                    timestampText.textContent = data.timestamp;
+                    countdownValue = 180; // Reset countdown on success
                     resetAnimation();
                 })
                 .catch(error => {
-                    statusElements[0].textContent = 'error';
-                    statusElements[1].textContent = 'Connection failed';
-                    statusElements[2].textContent = new Date().toLocaleString();
+                    statusText.textContent = 'error';
+                    messageText.textContent = 'Connection failed';
+                    timestampText.textContent = new Date().toLocaleString();
+                    // Retry faster on error (every 30 seconds)
+                    setTimeout(pingServer, 30000);
                 });
         };
-
-        // Start countdown timer
-        countdownInterval = setInterval(updateCountdown, 1000);
         
-        // Initial ping and then every 3 minutes
+        // Initial ping and then every 3 minutes (180,000ms)
         pingServer();
-        setInterval(pingServer, 180000);  // 180,000ms = 3 minutes
+        setInterval(pingServer, 180000);
         
         // Initial animation reset
         resetAnimation();
