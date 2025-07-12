@@ -1,26 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
+from flask_cors import CORS
 import pandas as pd
 from io import BytesIO, StringIO
-import re
-import time
-import os
 from datetime import datetime
-from flask_cors import CORS
+import re, os
 
 app = Flask(__name__)
-
-ALLOWED_ORIGIN = "https://coodecrafters.github.io"
-
-# ✅ Enable CORS only for GitHub Pages
-CORS(app, resources={r"/*": {"origins": [ALLOWED_ORIGIN]}})
-
-@app.route('/keepalive', methods=['GET'])
-def keepalive():
-    return jsonify({
-        "status": "active",
-        "message": "Welcome to Incredible platform",
-        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    })
+CORS(app, origins=["https://coodecrafters.github.io"])
 
 BRAND_MAPPING = {
     "SFERA": "1000020410",
@@ -40,12 +26,25 @@ def extract_date_from_filename(filename):
             return None
     return None
 
+@app.route('/keepalive', methods=['GET'])
+def keepalive():
+    return jsonify({
+        "status": "active",
+        "message": "Welcome to Incredible platform",
+        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
 @app.route('/retrieve', methods=['POST', 'OPTIONS'])
 def retrieve_data():
-    try:
-        if request.method == 'OPTIONS':
-            return '', 204
+    # Handle OPTIONS preflight
+    if request.method == 'OPTIONS':
+        response = make_response('', 204)
+        response.headers['Access-Control-Allow-Origin'] = 'https://coodecrafters.github.io'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
 
+    try:
         if 'excelFile' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 
@@ -55,17 +54,12 @@ def retrieve_data():
 
         file_date = extract_date_from_filename(file.filename)
 
-        filename = file.filename.lower()
-        try:
-            if filename.endswith('.csv'):
-                df = pd.read_csv(StringIO(file.read().decode('utf-8')), header=None)
-                sheets = {'csv_data': df}
-            else:
-                excel_data = pd.ExcelFile(BytesIO(file.read()))
-                sheets = {sheet_name: pd.read_excel(excel_data, sheet_name=sheet_name, header=None)
-                          for sheet_name in excel_data.sheet_names}
-        except Exception as e:
-            return jsonify({"error": f"Error reading file: {str(e)}"}), 400
+        if file.filename.lower().endswith('.csv'):
+            df = pd.read_csv(StringIO(file.read().decode('utf-8')), header=None)
+            sheets = {'csv_data': df}
+        else:
+            excel_data = pd.ExcelFile(BytesIO(file.read()))
+            sheets = {s: pd.read_excel(excel_data, sheet_name=s, header=None) for s in excel_data.sheet_names}
 
         results = {}
 
@@ -106,26 +100,19 @@ def retrieve_data():
         if not results:
             return jsonify({"error": "No matching data found in the file"}), 404
 
-        return jsonify({
+        response = jsonify({
             "status": "success",
             "date": file_date,
             "data": list(results.values())
         })
+        response.headers['Access-Control-Allow-Origin'] = 'https://coodecrafters.github.io'
+        return response
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        response = jsonify({"error": str(e)})
+        response.headers['Access-Control-Allow-Origin'] = 'https://coodecrafters.github.io'
+        return response, 500
 
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin == ALLOWED_ORIGIN:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    return response
-
-# -------------------- RUN APP -------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port, debug=True
+    app.run(host='0.0.0.0', port=port)
