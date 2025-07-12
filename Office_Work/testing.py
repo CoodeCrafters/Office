@@ -14,6 +14,16 @@ ALLOWED_ORIGIN = "https://coodecrafters.github.io"
 # Enable CORS using Flask-CORS (optional fallback)
 CORS(app, origins=[ALLOWED_ORIGIN], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
+# Configure CORS with more permissive settings for preflight
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({"status": "preflight"})
+        response.headers.add("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response
+
 # Custom origin check
 def check_origin():
     origin = request.headers.get('Origin')
@@ -37,12 +47,10 @@ def restrict_origin():
 
 @app.after_request
 def add_cors_headers(response):
-    origin = request.headers.get('Origin')
-    if origin == ALLOWED_ORIGIN:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-        response.headers["Access-Control-Max-Age"] = "86400"
+    response.headers.add("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+    response.headers.add("Access-Control-Allow-Credentials", "true")
     return response
 
 # Keepalive endpoint
@@ -96,10 +104,10 @@ def extract_date_from_filename(filename):
 
 @app.route('/retrieve', methods=['POST', 'OPTIONS'])
 def retrieve_data():
-    if request.method == 'OPTIONS':
-        return '', 204
-
     try:
+        if request.method == 'OPTIONS':
+            return '', 204
+            
         if 'excelFile' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
 
@@ -160,12 +168,13 @@ def retrieve_data():
         if not results:
             return jsonify({"error": "No matching data found in the file"}), 404
 
-        return jsonify({
+        response = jsonify({
             "status": "success",
             "date": file_date,
             "data": list(results.values())
         })
-
+        return response
+    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
