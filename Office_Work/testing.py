@@ -9,13 +9,44 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Enable CORS for all routes from your GitHub Pages domain
+# Configure CORS to only allow your specific GitHub Pages origin
+ALLOWED_ORIGIN = "https://coodecrafters.github.io"
+ALLOWED_PATH = "/Office/index_.html"
+
+def check_origin(request):
+    """Verify if request comes from allowed origin"""
+    origin = request.headers.get('Origin')
+    referer = request.headers.get('Referer')
+    allowed_url = f"{ALLOWED_ORIGIN}{ALLOWED_PATH}"
+    
+    if origin == ALLOWED_ORIGIN or referer == allowed_url:
+        return True
+    return False
+
+@app.before_request
+def before_request():
+    # Skip CORS checks for OPTIONS requests
+    if request.method == 'OPTIONS':
+        return
+    
+    # Check origin for actual requests
+    if not check_origin(request):
+        return jsonify({
+            "error": "Unauthorized access",
+            "message": "This API is restricted to specific origins",
+            "allowed_origin": ALLOWED_ORIGIN,
+            "your_origin": request.headers.get('Origin', 'not specified'),
+            "your_referer": request.headers.get('Referer', 'not specified')
+        }), 403
+
+# Enable CORS with specific configuration
 CORS(app, resources={
-    r"/*": {  # This will apply to all routes
-        "origins": ["https://coodecrafters.github.io"],
-        "methods": ["GET", "POST", "OPTIONS"],  # Add OPTIONS for preflight
+    r"/*": {
+        "origins": [ALLOWED_ORIGIN],
+        "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"],
-        "supports_credentials": True
+        "supports_credentials": False,
+        "expose_headers": []
     }
 })
 
@@ -27,12 +58,9 @@ response_interval = 210  # 3.5 minutes in seconds
 def keepalive():
     global last_response_time
     
-    # Handle OPTIONS preflight request
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'preflight'})
-        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         return response
     
     current_time = time.time()
@@ -40,22 +68,22 @@ def keepalive():
     
     if time_since_last >= response_interval:
         last_response_time = current_time
-        response = jsonify({
+        response_data = {
             "status": "active",
             "message": "Server keepalive ping",
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "next_ping_in": f"{response_interval} seconds"
-        })
+        }
     else:
-        response = jsonify({
+        response_data = {
             "status": "active",
             "message": "Server is alive",
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "seconds_until_next_ping": int(response_interval - time_since_last)
-        })
+        }
     
-    # Add CORS headers to the actual response
-    response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+    response = jsonify(response_data)
+    response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
     return response
 
 # Mapping of brand names to merchant IDs
@@ -80,16 +108,14 @@ def extract_date_from_filename(filename):
 
 @app.route('/retrieve', methods=['POST', 'OPTIONS'])
 def retrieve_data():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'preflight'})
+        response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+    
     try:
-        # Handle OPTIONS preflight request
-        if request.method == 'OPTIONS':
-            response = jsonify({'status': 'preflight'})
-            response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
-            response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-            return response
-        
-        # Check if file was uploaded
         if 'excelFile' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
         
@@ -97,7 +123,6 @@ def retrieve_data():
         if file.filename == '':
             return jsonify({"error": "No selected file"}), 400
         
-        # Extract date from filename
         file_date = extract_date_from_filename(file.filename)
         
         filename = file.filename.lower()
@@ -118,11 +143,11 @@ def retrieve_data():
             header_rows = df[df[0] == "HD"].index
             
             for header_row in header_rows:
-                brand_name = str(df.iloc[header_row, 13]).strip().upper()  # Column N (index 13)
+                brand_name = str(df.iloc[header_row, 13]).strip().upper()
                 
                 if brand_name in BRAND_MAPPING:
                     merchant_id = BRAND_MAPPING[brand_name]
-                    outlet_name = str(df.iloc[header_row, 14]).strip()  # Column O (index 14)
+                    outlet_name = str(df.iloc[header_row, 14]).strip()
                     
                     dt_rows = df[
                         (df[0] == "DT") & 
@@ -156,13 +181,22 @@ def retrieve_data():
             "date": file_date,
             "data": list(results.values())
         })
-        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+        response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         return response
     
     except Exception as e:
         response = jsonify({"error": str(e)})
-        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+        response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         return response, 500
+
+@app.after_request
+def add_cors_headers(response):
+    if request.endpoint in ['retrieve', 'keepalive']:
+        response.headers.add('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Max-Age', '86400')
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
