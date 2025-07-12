@@ -3,46 +3,61 @@ import pandas as pd
 from io import BytesIO, StringIO
 from flask_cors import CORS
 import re
+import time
+import os
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Enable CORS
+# Enable CORS for all routes from your GitHub Pages domain
 CORS(app, resources={
-    r"/retrieve*": {
+    r"/*": {  # This will apply to all routes
         "origins": ["https://coodecrafters.github.io"],
-        "methods": ["POST"],
-        "allowed_headers": ["Content-Type"]
+        "methods": ["GET", "POST", "OPTIONS"],  # Add OPTIONS for preflight
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
     }
-}, supports_credentials=True)
-
+})
 
 # Store the last response time
 last_response_time = 0
 response_interval = 210  # 3.5 minutes in seconds
 
-@app.route('/keepalive', methods=['GET'])
+@app.route('/keepalive', methods=['GET', 'OPTIONS'])
 def keepalive():
     global last_response_time
+    
+    # Handle OPTIONS preflight request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'preflight'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
     
     current_time = time.time()
     time_since_last = current_time - last_response_time
     
     if time_since_last >= response_interval:
         last_response_time = current_time
-        return jsonify({
+        response = jsonify({
             "status": "active",
             "message": "Server keepalive ping",
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "next_ping_in": f"{response_interval} seconds"
         })
     else:
-        return jsonify({
+        response = jsonify({
             "status": "active",
             "message": "Server is alive",
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "seconds_until_next_ping": int(response_interval - time_since_last)
         })
+    
+    # Add CORS headers to the actual response
+    response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+    return response
+
 # Mapping of brand names to merchant IDs
 BRAND_MAPPING = {
     "SFERA": "1000020410",
@@ -63,9 +78,17 @@ def extract_date_from_filename(filename):
             return None
     return None
 
-@app.route('/retrieve', methods=['POST'])
+@app.route('/retrieve', methods=['POST', 'OPTIONS'])
 def retrieve_data():
     try:
+        # Handle OPTIONS preflight request
+        if request.method == 'OPTIONS':
+            response = jsonify({'status': 'preflight'})
+            response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+            response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+            return response
+        
         # Check if file was uploaded
         if 'excelFile' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
@@ -128,14 +151,19 @@ def retrieve_data():
         if not results:
             return jsonify({"error": "No matching data found in the file"}), 404
         
-        return jsonify({
+        response = jsonify({
             "status": "success",
             "date": file_date,
             "data": list(results.values())
         })
+        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+        return response
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', 'https://coodecrafters.github.io')
+        return response, 500
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=port, debug=True)
