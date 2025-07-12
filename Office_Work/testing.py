@@ -10,12 +10,42 @@ app = Flask(__name__)
 # Enable CORS
 CORS(app, resources={
     r"/retrieve*": {
-        "origins": ["http://127.0.0.1:5500", "http://localhost:5500"],
+        "origins": ["https://coodecrafters.github.io/"],
         "methods": ["POST"],
         "allow_headers": ["Content-Type"]
     }
 })
 
+
+# Test endpoint that sends "Welcome" every 3 minutes
+@app.route('/Welcome', methods=['GET', 'POST'])
+def welcome_message():
+    return jsonify({
+        "status": "success",
+        "message": "Welcome",
+        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+# Test endpoint that sends "ThankingYou" every 3 seconds
+@app.route('/ThankingYou', methods=['GET', 'POST'])
+def thanking_you():
+    return jsonify({
+        "status": "success",
+        "message": "ThankingYou",
+        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+
+# Background scheduler for test endpoints
+def background_scheduler():
+    while True:
+        # This is just to keep the thread alive
+        time.sleep(1)
+
+# Start the background thread when app starts
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    scheduler_thread = threading.Thread(target=background_scheduler)
+    scheduler_thread.daemon = True
+    scheduler_thread.start()
 # Mapping of brand names to merchant IDs
 BRAND_MAPPING = {
     "SFERA": "1000020410",
@@ -111,4 +141,5 @@ def retrieve_data():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000, debug=True)
+    port = int(os.environ.get('PORT', 3000))
+    app.run(host='0.0.0.0', port=port, debug=True)
