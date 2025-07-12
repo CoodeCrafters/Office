@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Keepalive Monitor</h2>
+    <div id="status"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const pingServer = () => {
+            fetch('http://localhost:3000/keepalive')
+                .then(response => response.json())
+                .then(data => {
+                    statusDiv.innerHTML = `
+                        <p>Status: ${data.status}</p>
+                        <p>Message: ${data.message}</p>
+                        <p>Timestamp: ${data.timestamp}</p>
+                        ${data.next_ping_in ? `<p>Next ping in: ${data.next_ping_in}</p>` : 
+                         `<p>Next ping in: ${data.seconds_until_next_ping} seconds</p>`}
+                    `;
+                });
+        };
+        
+        // Ping immediately and then every 3.5 minutes
+        pingServer();
+        setInterval(pingServer, 210000);  // 210,000ms = 3.5 minutes
+    </script>
+</body>
+</html>
