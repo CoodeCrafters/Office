@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Data Processor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #4CAF50;
+            background-color: #f9f9f9;
+        }
+        #fileInput {
+            display: none;
+        }
+        .browse-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        .browse-btn:hover {
+            background-color: #45a049;
+        }
+        .file-info {
+            margin-top: 20px;
+        }
+         table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2; /* Changed from dark green to light gray */
+            color: #333; /* Changed from white to dark text */
+            font-weight: bold; /* Changed from bold to normal */
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .error {
+            color: #d32f2f;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .success {
+            color: #388e3c;
+            margin-top: 10px;
+        }
+        .date-header {
+            background-color: #e3f2fd;
+            padding: 15px;
+            margin-top: 30px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 18px;
+            border-left: 5px solid #2196F3;
+        }
+        .outlet-section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 20px;
+            background-color: white;
+        }
+        .outlet-header {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .brand-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .outlet-name {
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+        .other-outlets {
+            margin-top: 30px;
+        }
+        .other-outlets h3 {
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 8px;
+            color: #333;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .progress {
+            height: 6px;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Retail Data Processor</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <p>Drag & drop your Excel/CSV files here or</p>
+            <button class="browse-btn" id="browseBtn">Browse Files</button>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple />
+            <p class="error" id="errorMessage"></p>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress" id="progress"></div>
+            </div>
+        </div>
+        
+        <div id="fileDisplayArea"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const browseBtn = document.getElementById('browseBtn');
+            const fileInput = document.getElementById('fileInput');
+            const errorMessage = document.getElementById('errorMessage');
+            const fileDisplayArea = document.getElementById('fileDisplayArea');
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            
+            let filesQueue = [];
+            let processing = false;
+            let processedCount = 0;
+
+            // Handle browse button click
+            browseBtn.addEventListener('click', () => fileInput.click());
+            
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileSelection);
+            
+            // Drag and drop handlers
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#4CAF50';
+                uploadArea.style.backgroundColor = '#f0fff0';
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = '#ccc';
+                uploadArea.style.backgroundColor = '';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ccc';
+                uploadArea.style.backgroundColor = '';
+                if (e.dataTransfer.files.length) {
+                    handleFileSelection({ target: { files: e.dataTransfer.files } });
+                }
+            });
+
+            function handleFileSelection(event) {
+                errorMessage.textContent = '';
+                const files = Array.from(event.target.files);
+                
+                // Validate files
+                const validFiles = files.filter(file => {
+                    const filename = file.name.toLowerCase();
+                    const validExtensions = ['.xlsx', '.xls', '.csv'];
+                    const fileExt = filename.substring(filename.lastIndexOf('.'));
+                    
+                    if (!validExtensions.includes(fileExt)) {
+                        errorMessage.textContent = 'Only Excel (.xlsx, .xls) and CSV (.csv) files are allowed';
+                        return false;
+                    }
+                    
+                    if (file.size > 10 * 1024 * 1024) {
+                        errorMessage.textContent = 'File size exceeds 10MB limit';
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                if (validFiles.length) {
+                    filesQueue = filesQueue.concat(validFiles);
+                    if (!processing) {
+                        progressBar.style.display = 'block';
+                        processQueue();
+                    }
+                }
+            }
+
+            function processQueue() {
+                if (filesQueue.length === 0) {
+                    processing = false;
+                    progressBar.style.display = 'none';
+                    progress.style.width = '0%';
+                    processedCount = 0;
+                    return;
+                }
+                
+                processing = true;
+                const file = filesQueue.shift();
+                processFile(file).finally(() => {
+                    processedCount++;
+                    progress.style.width = `${(processedCount / (processedCount + filesQueue.length)) * 100}%`;
+                    processQueue();
+                });
+            }
+
+            async function processFile(file) {
+                const formData = new FormData();
+                formData.append('excelFile', file);
+                
+                try {
+                    const response = await fetch('http://localhost:3000/retrieve', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Server error');
+                    }
+                    
+                    displayResults(data, file.name);
+                } catch (error) {
+                    errorMessage.textContent = `Error processing ${file.name}: ${error.message}`;
+                }
+            }
+
+            function displayResults(data, filename) {
+                if (data.status !== 'success' || !data.data || data.data.length === 0) {
+                    errorMessage.textContent = `No valid data found in ${filename}`;
+                    return;
+                }
+                
+                const date = data.date || 'Unknown Date';
+                const [firstOutlet, ...otherOutlets] = data.data;
+                
+                // Create date section
+                const dateSection = document.createElement('div');
+                dateSection.className = 'date-section';
+                dateSection.innerHTML = `<div class="date-header">Date: ${date}</div>`;
+                
+                // Create main outlet display
+                const mainOutletSection = document.createElement('div');
+                mainOutletSection.className = 'outlet-section';
+                
+                mainOutletSection.innerHTML = `
+                    <div class="outlet-header">
+                        <div class="brand-name">${firstOutlet.brand_name}</div>
+                        <div class="outlet-name">${firstOutlet.company_outlet_name}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Merchant ID</th>
+                                <th>COMM Amount</th>
+                                <th>VAT Amount</th>
+                                <th>SETT Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${firstOutlet.merchant_id}</td>
+                                <td>${firstOutlet.COMM_AMOUNT.toFixed(2)}</td>
+                                <td>${firstOutlet.VAT_AMOUNT.toFixed(2)}</td>
+                                <td>${firstOutlet.SETT_AMOUNT.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                
+                // Create other outlets section if they exist
+                if (otherOutlets.length > 0) {
+                    const otherOutletsSection = document.createElement('div');
+                    otherOutletsSection.className = 'other-outlets';
+                    otherOutletsSection.innerHTML = '<h3>Other Outlets for this Date</h3>';
+                    
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>Brand Name</th>
+                                <th>Outlet Name</th>
+                                <th>Merchant ID</th>
+                                <th>COMM Amount</th>
+                                <th>VAT Amount</th>
+                                <th>SETT Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${otherOutlets.map(outlet => `
+                                <tr>
+                                    <td>${outlet.brand_name}</td>
+                                    <td>${outlet.company_outlet_name}</td>
+                                    <td>${outlet.merchant_id}</td>
+                                    <td>${outlet.COMM_AMOUNT.toFixed(2)}</td>
+                                    <td>${outlet.VAT_AMOUNT.toFixed(2)}</td>
+                                    <td>${outlet.SETT_AMOUNT.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    
+                    otherOutletsSection.appendChild(table);
+                    mainOutletSection.appendChild(otherOutletsSection);
+                }
+                
+                dateSection.appendChild(mainOutletSection);
+                fileDisplayArea.appendChild(dateSection);
+            }
+        });
+    </script>
+</body>
+</html>
