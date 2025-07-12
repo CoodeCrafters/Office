@@ -115,17 +115,17 @@ def retrieve_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Ensure all responses carry CORS headers
 @app.after_request
-def apply_cors(response):
+def after_request(response):
     origin = request.headers.get('Origin')
     if origin == ALLOWED_ORIGIN:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Max-Age'] = '86400'
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
     return response
 
+# -------------------- RUN APP -------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True
