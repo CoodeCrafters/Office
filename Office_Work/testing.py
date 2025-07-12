@@ -17,9 +17,8 @@ CORS(app)
 @app.route('/keepalive', methods=['GET'])
 def keepalive():
     return jsonify({
-        "status": "success",
-        "current_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "timestamp": datetime.now().timestamp()
+        "message": "Welcome to Incredible platform",
+        "status": "success"
     })
 
 # Brand mapping
