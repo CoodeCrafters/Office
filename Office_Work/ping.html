@@ -3,159 +3,72 @@
 <head>
     <title>Server Keepalive Monitor</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-        
-        h2 {
-            color: #f8f8f8;
-            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-            margin-bottom: 30px;
-        }
-        
-        #status {
-            background-color: #1e1e1e;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 20px;
-            width: 300px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-        }
-        
-        .sand-timer {
-            width: 120px;
-            height: 180px;
-            position: relative;
-            margin: 20px auto;
-            background-color: #2a2a2a;
-            border: 8px solid #5d4a2a;
-            border-radius: 10px 10px 50px 50px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
-        }
-        
-        .glass {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        .sand {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, #d4a76a 0%, #b58a4a 100%);
-            clip-path: polygon(0% 0%, 100% 0%, 50% 50%, 100% 100%, 0% 100%);
-            animation: flow 210s linear infinite;
-        }
-        
-        .stand {
-            position: absolute;
-            width: 20px;
-            height: 80px;
-            background-color: #5d4a2a;
-            bottom: -60px;
-            left: 50px;
-        }
-        
-        .stand:before, .stand:after {
-            content: '';
-            position: absolute;
-            width: 60px;
-            height: 20px;
-            background-color: #5d4a2a;
-            bottom: 40px;
-        }
-        
-        .stand:before {
-            left: -70px;
-        }
-        
-        .stand:after {
-            left: 30px;
-        }
-        
-        @keyframes flow {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(100%); }
-        }
-        
-        .status-item {
-            margin: 10px 0;
-            padding: 8px;
-            background-color: #2a2a2a;
-            border-radius: 4px;
-            border-left: 3px solid #d4a76a;
-        }
-        
-        .highlight {
+        /* [Keep all your existing styles] */
+        .countdown {
+            font-size: 1.2em;
             color: #d4a76a;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h2>Server Keepalive Monitor</h2>
-    
-    <div class="sand-timer">
-        <div class="glass">
-            <div class="sand"></div>
-        </div>
-        <div class="stand"></div>
-    </div>
-    
-    <div id="status">
-        <div class="status-item">Status: <span class="highlight">Connecting...</span></div>
-        <div class="status-item">Message: <span class="highlight">-</span></div>
-        <div class="status-item">Timestamp: <span class="highlight">-</span></div>
-        <div class="status-item">Next ping in: <span class="highlight">-</span></div>
-    </div>
+    <!-- [Keep all your existing HTML structure] -->
     
     <script>
         const statusDiv = document.getElementById('status');
         const statusElements = statusDiv.querySelectorAll('.highlight');
         const sand = document.querySelector('.sand');
-        
-        let resetAnimation = () => {
+        let countdownInterval;
+        let secondsRemaining = 180; // 3 minutes in seconds
+
+        const updateCountdown = () => {
+            const mins = Math.floor(secondsRemaining / 60);
+            const secs = secondsRemaining % 60;
+            statusElements[3].textContent = `${mins}m ${secs}s`;
+            secondsRemaining--;
+            
+            if (secondsRemaining < 0) {
+                secondsRemaining = 180;
+            }
+        };
+
+        const resetAnimation = () => {
             sand.style.animation = 'none';
             sand.offsetHeight; // Trigger reflow
-            sand.style.animation = 'flow 210s linear infinite';
+            sand.style.animation = 'flow 180s linear infinite';
         };
-        
+
         const pingServer = () => {
-            fetch('https://office-6.onrender.com/keepalive')
-                .then(response => response.json())
+            fetch('https://office-6.onrender.com/keepalive?t=' + Date.now())
+                .then(response => {
+                    if (!response.ok) throw new Error('Server error');
+                    return response.json();
+                })
                 .then(data => {
                     statusElements[0].textContent = data.status;
                     statusElements[1].textContent = data.message;
                     statusElements[2].textContent = data.timestamp;
-                    statusElements[3].textContent = data.next_ping_in 
-                        ? data.next_ping_in 
-                        : data.seconds_until_next_ping + ' seconds';
                     
-                    // Reset sand timer animation on each successful ping
+                    // Reset countdown when we get a fresh ping
+                    if (data.message.includes("keepalive ping")) {
+                        secondsRemaining = 180;
+                    }
+                    
                     resetAnimation();
                 })
                 .catch(error => {
                     statusElements[0].textContent = 'error';
                     statusElements[1].textContent = 'Connection failed';
                     statusElements[2].textContent = new Date().toLocaleString();
-                    statusElements[3].textContent = 'retrying...';
                 });
         };
+
+        // Start countdown timer
+        countdownInterval = setInterval(updateCountdown, 1000);
         
-        // Ping immediately and then every 3.5 minutes
+        // Initial ping and then every 3 minutes
         pingServer();
-        setInterval(pingServer, 210000);  // 210,000ms = 3.5 minutes
+        setInterval(pingServer, 180000);  // 180,000ms = 3 minutes
         
         // Initial animation reset
         resetAnimation();
