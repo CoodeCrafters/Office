@@ -12,7 +12,7 @@ app = Flask(__name__)
 ALLOWED_ORIGIN = "https://coodecrafters.github.io"
 
 # Enable CORS using Flask-CORS (optional fallback)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": [ALLOWED_ORIGIN]}})
 # Keepalive endpoint
 @app.route('/keepalive', methods=['GET'])
 def keepalive():
