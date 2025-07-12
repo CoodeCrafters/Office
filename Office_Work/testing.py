@@ -10,7 +10,7 @@ app = Flask(__name__)
 # Enable CORS
 CORS(app, resources={
     r"/retrieve*": {
-        "origins": ["https://coodecrafters.github.io/"],
+        "origins": ["https://coodecrafters.github.io"],
         "methods": ["POST"],
         "allow_headers": ["Content-Type"]
     }
