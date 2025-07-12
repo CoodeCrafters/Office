@@ -17,35 +17,32 @@ CORS(app, resources={
 })
 
 
-# Test endpoint that sends "Welcome" every 3 minutes
-@app.route('/Welcome', methods=['GET', 'POST'])
-def welcome_message():
-    return jsonify({
-        "status": "success",
-        "message": "Welcome",
-        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    })
+# Store the last response time
+last_response_time = 0
+response_interval = 210  # 3.5 minutes in seconds
 
-# Test endpoint that sends "ThankingYou" every 3 seconds
-@app.route('/ThankingYou', methods=['GET', 'POST'])
-def thanking_you():
-    return jsonify({
-        "status": "success",
-        "message": "ThankingYou",
-        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    })
-
-# Background scheduler for test endpoints
-def background_scheduler():
-    while True:
-        # This is just to keep the thread alive
-        time.sleep(1)
-
-# Start the background thread when app starts
-if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    scheduler_thread = threading.Thread(target=background_scheduler)
-    scheduler_thread.daemon = True
-    scheduler_thread.start()
+@app.route('/keepalive', methods=['GET'])
+def keepalive():
+    global last_response_time
+    
+    current_time = time.time()
+    time_since_last = current_time - last_response_time
+    
+    if time_since_last >= response_interval:
+        last_response_time = current_time
+        return jsonify({
+            "status": "active",
+            "message": "Server keepalive ping",
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "next_ping_in": f"{response_interval} seconds"
+        })
+    else:
+        return jsonify({
+            "status": "active",
+            "message": "Server is alive",
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "seconds_until_next_ping": int(response_interval - time_since_last)
+        })
 # Mapping of brand names to merchant IDs
 BRAND_MAPPING = {
     "SFERA": "1000020410",
@@ -141,5 +138,4 @@ def retrieve_data():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=port, debug=True)
