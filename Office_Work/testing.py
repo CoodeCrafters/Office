@@ -12,9 +12,9 @@ CORS(app, resources={
     r"/retrieve*": {
         "origins": ["https://coodecrafters.github.io"],
         "methods": ["POST"],
-        "allow_headers": ["Content-Type"]
+        "allowed_headers": ["Content-Type"]
     }
-})
+}, supports_credentials=True)
 
 
 # Store the last response time
