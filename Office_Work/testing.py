@@ -12,47 +12,7 @@ app = Flask(__name__)
 ALLOWED_ORIGIN = "https://coodecrafters.github.io"
 
 # Enable CORS using Flask-CORS (optional fallback)
-CORS(app, origins=[ALLOWED_ORIGIN], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
-
-# Configure CORS with more permissive settings for preflight
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = jsonify({"status": "preflight"})
-        response.headers.add("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-        return response
-
-# Custom origin check
-def check_origin():
-    origin = request.headers.get('Origin')
-    referer = request.headers.get('Referer')
-    if origin == ALLOWED_ORIGIN:
-        return True
-    if referer and referer.startswith(ALLOWED_ORIGIN):
-        return True
-    return False
-
-@app.before_request
-def restrict_origin():
-    if request.method != 'OPTIONS' and not check_origin():
-        return jsonify({
-            "error": "Unauthorized access",
-            "message": "This API is restricted to specific origins",
-            "allowed_origin": ALLOWED_ORIGIN,
-            "your_origin": request.headers.get('Origin', 'not specified'),
-            "your_referer": request.headers.get('Referer', 'not specified')
-        }), 403
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers.add("Access-Control-Allow-Origin", ALLOWED_ORIGIN)
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-    response.headers.add("Access-Control-Allow-Credentials", "true")
-    return response
-
+CORS(app)
 # Keepalive endpoint
 last_response_time = 0
 response_interval = 210  # seconds
